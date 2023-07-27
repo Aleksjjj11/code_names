@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Codenames</title>
+    <link rel="stylesheet" href="/src/css/bootstrap-5.0-min.css">
+    <link rel="stylesheet" href="/src/css/custom.css">
+</head>
+
+<body >
+<%- include("header") %>
+<main class="container">
+
+    <div class="text-center">
+        <div class="h2"> Обновить пак # <span class="h2" id="pacId"><%=dict.id%></span> </div>
+        <div class="col-3 mx-auto my-1 "> <input id="pacName" class="form-control" type="text" value="<%=dict.name%>" placeholder="Название пака"> </div>
+        <textarea class="form-control my-1" placeholder="Слова пака через запятую" id="words" rows="3" style=" height: 172px; resize: none;"><%=dict.words%></textarea>
+        <div class=" h3 text-warning my-1 w-25 mx-auto" id="count"></div>
+        <div class=" h3 text-dangerous my-4 w-25 mx-auto" id="err"></div>
+        <button type="button" id="send" class="btn btn-info my-1">Обновить</button>
+        </div>
+    </div>
+    <%- include("formConsts") %>
+</main>
+</body>
+<script src="/src/js/ajax.js"></script>
+<script src="/src/js/pacForm.js"></script>
+<script src="/src/js/pacSettings.js"></script>
+
+</html>
+

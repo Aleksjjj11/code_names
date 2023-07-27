@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Codenames</title>
+        <link rel="stylesheet" href="/src/css/bootstrap-5.0-min.css">
+        <link rel="stylesheet" href="/src/css/custom.css">
+    </head>
+
+    <body>
+        <%- include("header") %>
+            <div>
+                <main class="container-fluid">
+                    <div class="text-center w-25 mx-auto">
+                        <h1 class="h3 mb-3 fw-normal">Введите логин и пароль</h1>
+                        <h2 id="err"></h2>
+                        <input type="text" id="log" class="form-control" placeholder="Login" required="" autofocus="">
+                        <input type="password" id="pas" class="form-control" placeholder="Password" required="">
+                        <button id="send" class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+                    </div>
+                </main>
+            </div>
+            <script src="/src/js/lcUndefined.js"></script>
+
+    </body>
+
+    <script src="/src/js/ajax.js"></script>
+
+</html>

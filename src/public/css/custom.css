@@ -1,0 +1,110 @@
+body {
+    background: linear-gradient(to top, #7faffd, #b281ff) no-repeat center center fixed;
+    background-size: contain;
+}
+
+#table {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.autocomplete-wrap {
+    position: relative;
+    width: 300px;
+}
+
+.autocomplete-input {
+    width: 100%;
+}
+
+.autocomplete-list {
+
+    position: absolute;
+    top: 100%;
+    border: 1px solid #97b46c;
+    width: 100%;
+    display: none;
+    z-index: 9999;
+    max-height: 400px;
+    overflow-y: auto;
+
+}
+
+.autocomplete-wrap.active .autocomplete-list {
+    display: block;
+    border-radius: 0 0 3px 3px;
+}
+
+.autocomplete-item {
+    padding: 8px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .3s ease;
+    background-color: white;
+}
+.autocomplete-item:hover, .autocomplete-item.focused {
+    background: #ffd700;
+}
+
+.autocomplete-wrap.active .autocomplete-input {
+    border-radius: 3px 3px 0 0;
+    border-bottom: 1px solid transparent;
+}
+
+
+#table div {
+    border-radius: 5px;
+    width: 13%;
+    padding: 20px;
+    margin: 20px;
+    display: inline-block;
+    text-align: center;
+    background-color: white;
+    cursor: pointer;
+}
+
+.closeCard {
+    opacity: 0.5;
+}
+
+.team {
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px;
+    width: 15%;
+}
+
+.capCont{
+    border-bottom: 2px solid black;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+}
+
+.teamTitle {
+    padding-bottom: 10px;
+    border-bottom: 2px solid black;
+}
+
+.wordsTextarea{
+    height: 150px;
+    width: 80%;
+    background-color: lightgrey;
+}
+
+.button {
+    border: 1px solid black;
+    border-radius: 4px;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+#timer {
+    font-size: 3em;
+}

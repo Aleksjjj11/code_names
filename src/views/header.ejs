@@ -1,0 +1,12 @@
+<header class="d-flex justify-content-end flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
+    <a class="h5 my-0 me-md-left fw-normal p-2 flex-grow-1 bd-highlight" href="/">
+        <p class="h5 my-0 me-md-left fw-normal p-2 flex-grow-1 bd-highlight">Shitting CodeNames Corporation</p>
+    </a>
+    <% if (login !== undefined) {%>
+        <a class="btn btn-outline-primary" href="/lc"><%=login%></a>
+    <% } else {%>
+        <a class="btn btn-outline-primary mr-3" href="/register">Sing in</a>
+        <a class="btn btn-outline-primary" href="/auth">Sign up</a>
+    <% } %>
+</header>
+
