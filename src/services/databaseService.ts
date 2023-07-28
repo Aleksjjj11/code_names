@@ -1,6 +1,7 @@
 import sqlite3 from "sqlite3";
 import {open} from "sqlite"
 import User from "database_models/User";
+import { escape } from 'querystring';
 
 export default class DatabaseService {
     private readonly databasePath: string;
@@ -29,6 +30,24 @@ export default class DatabaseService {
         return await db.get<User>(query, username, password);
     }
 
+    public async insertPacToDb(request: any, words: string[], response: any) {
+        const query = "INSERT INTO dicts VALUES(null, ?, ?, ?, 0)";
+        const db = await this.openDb();
+        await db.run(query, request.session.uid, request.body.name, encodeURIComponent(JSON.stringify(words)));
+        response.send({type: 'redirect', url: '/lc/1'});
+    }
+
+    public async refreshPacInDb(request: any, words: string[], response: any, id: number) {
+        const query = "UPDATE dicts SET name = ?, words = ? where id = ?";
+        const db = await this.openDb();
+        await db.run(query, request.body.name, encodeURIComponent(JSON.stringify(words)), id);
+        response.send({text: "Ваш пак обновлён!"});
+    }
+    public async getPacById(id: string): Promise<any> {
+        const query = "SELECT * FROM dicts where id = ?";
+        const db = await this.openDb();
+        return await db.get(query, id);
+    }
     private async openDb () {
         return open({
             filename: this.databasePath,
