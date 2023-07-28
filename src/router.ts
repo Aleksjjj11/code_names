@@ -1,7 +1,9 @@
 import * as path from "path";
 import { Database } from 'sqlite3';
-import expressSession from 'express-session';
+import expressSession, {Session} from 'express-session';
 import connectSqlite from 'connect-sqlite3';
+import DatabaseService from "./services/databaseService";
+import User from "./models/database_models/User";
 
 const SQLiteStore = connectSqlite(expressSession);
 
@@ -22,6 +24,7 @@ exports.init = function () {
     const MIN_WORDS_COUNT = 30
     const MAX_WORDS_COUNT = 2000
     const MAX_WORD_LENGTH = 60
+    const dbService: DatabaseService = new DatabaseService(`./${dbPath}`);
 
     app.set('view engine', 'ejs')
     app.set('views', path.join('./src/views'));
@@ -71,42 +74,46 @@ exports.init = function () {
         res.render('register', {login: req.session.login})
     })
 
-    app.post('/register', urlencodedParser, function (request, response) {
-        db.get("SELECT 1 AS isExists FROM users where login = ?", request.body.login, (err, resultRow) => {
-            if (!!resultRow) {
-                response.send({text: 'Логин занят', type: 'err'})
-            } else {
-                const p = new Promise((resolve, reject) => {
-                    db.run("INSERT INTO users VALUES(null, ?, ?, 0)", request.body.login, request.body.password, function(err) {
-                        request.session.login = request.body.login
-                        request.session.uid = this.lastID
-                        let time = 103600000
-                        request.session.cookie.expires = new Date(Date.now() + time)
-                        request.session.cookie.maxAge = time
-                        resolve(200);
-                    })
-                })
-                p.then(() => {
-                    response.send({type: 'redirect', url: '/'})
-                })
-            }
-        })
+    app.post('/register', urlencodedParser, async function (request, response) {
+        let isExistsUser: boolean = await dbService.isExistsUsername(request.body.login);
+        if (isExistsUser) {
+            response.send({
+                text: 'Логин занят',
+                type: 'err'
+            });
+            return;
+        }
+
+        let createdUserId = await dbService.addUser(request.body.login, request.body.password);
+        if (!createdUserId) {
+            response.send({
+                text: 'Произошла ошибка при создании нового пользователя',
+                type: 'err'
+            });
+            return;
+        }
+
+        fillUserSession(request.session, request.body.login, createdUserId);
+
+        response.send({
+            type: 'redirect',
+            'url': '/'
+        });
     })
 
-    app.post('/lcLogin', urlencodedParser, function (request, response) {
-        db.get("SELECT * FROM users where login = ? and password = ? ", request.body.login, request.body.password, (err, userRow) => {
-            if (!!userRow) {
-                request.session.login = request.body.login
-                request.session.uid = userRow.id
-                let time = 103600000
-                request.session.cookie.expires = new Date(Date.now() + time)
-                request.session.cookie.maxAge = time
-                response.send({type: 'redirect', url: '/lc'})
+    app.post('/lcLogin', urlencodedParser, async function (request, response) {
+        let authorizeResult: User | undefined = await dbService.authorize(request.body.login, request.body.password);
+        if (!authorizeResult) {
+            response.send({
+                text: 'Пользователь не найден',
+                type: 'err'
+            });
+            return;
+        }
 
-            } else {
-                response.send({text: 'Пользователь не найден', type: 'err'})
-            }
-        })
+        fillUserSession(request.session, request.body.login, authorizeResult.id);
+
+        response.send({type: 'redirect', url: '/lc'});
     })
 
     app.post('/lcAddPac', urlencodedParser, function (request, response) {
@@ -179,6 +186,16 @@ exports.init = function () {
             response.send(names)
         })
     }) 
+}
+
+function fillUserSession(session: Session, username: string, userId: number) {
+    const time = 103600000;
+    // @ts-ignore
+    session.login = username;
+    // @ts-ignore
+    session.uid = userId;
+    session.cookie.expires = new Date(Date.now() + time);
+    session.cookie.maxAge = time;
 }
 
 
