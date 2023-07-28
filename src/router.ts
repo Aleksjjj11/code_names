@@ -10,18 +10,14 @@ exports.init = function () {
     const helmet = require('helmet')
     const escape = require('escape-html')
     const compression = require('compression')
-    const minify = require('express-minify')
     const cookieParser = require('cookie-parser')
     const express = require('express')
     const app = express()
     const limitter = require('express-rate-limit')
     const bodyParser = require('body-parser')
     const session = require('express-session')
-    console.log(dbPath)
-    const sessionStore = new SQLiteStore({ db: dbPath, dir: 'C:/Users/anrys/WebstormProjects/code_names', table: 'sessions' });
-    console.log("1")
-    const db = new Database('C:\\Users\\anrys\\WebstormProjects\\code_names\\database.db', );
-    //const MySQLStore = require('express-mysql-session')(session)
+    const sessionStore = new SQLiteStore({ db: dbPath, dir: './', table: 'sessions' });
+    const db = new Database(`./${dbPath}`);
     const crypto = require('crypto')
     const MIN_WORDS_COUNT = 30
     const MAX_WORDS_COUNT = 2000
@@ -32,7 +28,6 @@ exports.init = function () {
 
     app.use(compression())
 
-    //app.use(helmet.contentSecurityPolicy());
     app.use(helmet.dnsPrefetchControl());
     app.use(helmet.expectCt());
     app.use(helmet.frameguard());
@@ -49,8 +44,6 @@ exports.init = function () {
 
     app.listen(8080)
 
-   // const sessionStore = new MySQLStore({}, mysqlConnect)
-
     app.use(limitter({
         windowMs: 7000,
         max: 7,
@@ -64,13 +57,12 @@ exports.init = function () {
         saveUninitialized: false
     }));
 
-
     const urlencodedParser = bodyParser.json()
 
-
     app.get('/', (req, res) => {
-        if (!('token' in req.cookies))
+        if (!('token' in req.cookies)) {
             res.cookie('token', crypto.randomBytes(64).toString('hex'), {maxAge: 86400})
+        }
 
         res.render('main', {login: req.session.login})
     })
@@ -80,18 +72,12 @@ exports.init = function () {
     })
 
     app.post('/register', urlencodedParser, function (request, response) {
-        console.log("2")
-        db.get("SELECT 1 AS isExists FROM users where login = ?", request.body.login, (err, results, fields) => {
-            console.log(results)
-
-            if (!!results) {
+        db.get("SELECT 1 AS isExists FROM users where login = ?", request.body.login, (err, resultRow) => {
+            if (!!resultRow) {
                 response.send({text: 'Логин занят', type: 'err'})
             } else {
                 const p = new Promise((resolve, reject) => {
-
-                    console.log(request.body.login, request.body.password)
-                    db.run("INSERT INTO users VALUES(null, ?, ?, 0)", request.body.login, request.body.password, function(err, results1, fields) {
-                        console.log(results1)
+                    db.run("INSERT INTO users VALUES(null, ?, ?, 0)", request.body.login, request.body.password, function(err) {
                         request.session.login = request.body.login
                         request.session.uid = this.lastID
                         let time = 103600000
@@ -108,11 +94,10 @@ exports.init = function () {
     })
 
     app.post('/lcLogin', urlencodedParser, function (request, response) {
-        db.get("SELECT * FROM users where login = ? and password = ? ", request.body.login, request.body.password, (err, results, fields) => {
-
-            if (results.length > 0) {
+        db.get("SELECT * FROM users where login = ? and password = ? ", request.body.login, request.body.password, (err, userRow) => {
+            if (!!userRow) {
                 request.session.login = request.body.login
-                request.session.uid = results[0].id
+                request.session.uid = userRow.id
                 let time = 103600000
                 request.session.cookie.expires = new Date(Date.now() + time)
                 request.session.cookie.maxAge = time
@@ -124,8 +109,7 @@ exports.init = function () {
         })
     })
 
-    app.post('/lcAddPac', urlencodedParser, function (request, response)
-    {
+    app.post('/lcAddPac', urlencodedParser, function (request, response) {
         insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, db, (request, words, mysqlConnect) => {
             db.run("INSERT INTO dicts VALUES(null, ?, ?, ?, 0)", request.body.name,
                 JSON.stringify(words),
