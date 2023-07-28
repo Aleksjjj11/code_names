@@ -1,6 +1,12 @@
 import * as path from "path";
+import { Database } from 'sqlite3';
+import expressSession from 'express-session';
+import connectSqlite from 'connect-sqlite3';
 
-exports.init = function (mysqlConnect) {
+const SQLiteStore = connectSqlite(expressSession);
+
+exports.init = function () {
+    const dbDir = path.resolve('C:\\Users\\anrys\\WebstormProjects\\code_names');
     const helmet = require('helmet')
     const escape = require('escape-html')
     const compression = require('compression')
@@ -11,8 +17,10 @@ exports.init = function (mysqlConnect) {
     const limitter = require('express-rate-limit')
     const bodyParser = require('body-parser')
     const session = require('express-session')
-    const MySQLStore = require('express-mysql-session')(session)
+    const db = new Database('C:\\Users\\anrys\\WebstormProjects\\code_names\\database.db');
+    //const MySQLStore = require('express-mysql-session')(session)
     const crypto = require('crypto')
+    const sessionStore = new SQLiteStore({ dir: dbDir });
 
     const MIN_WORDS_COUNT = 30
     const MAX_WORDS_COUNT = 2000
@@ -40,7 +48,7 @@ exports.init = function (mysqlConnect) {
 
     app.listen(8080)
 
-    const sessionStore = new MySQLStore({}, mysqlConnect)
+   // const sessionStore = new MySQLStore({}, mysqlConnect)
 
     app.use(limitter({
         windowMs: 7000,
@@ -71,19 +79,20 @@ exports.init = function (mysqlConnect) {
     })
 
     app.post('/register', urlencodedParser, function (request, response) {
-        mysqlConnect.query("SELECT count (*) as count FROM users where login = ?", [
-            request.body.login
-        ], function (err, results, fields) {
-            if (results[0].count >= 1) {
+        console.log("2")
+        db.get("SELECT 1 AS isExists FROM users where login = ?", request.body.login, (err, results, fields) => {
+            console.log(results)
+
+            if (!!results) {
                 response.send({text: 'Логин занят', type: 'err'})
             } else {
                 const p = new Promise((resolve, reject) => {
-                    mysqlConnect.query("INSERT INTO users VALUES(null, ?, ?, 0)", [
-                        request.body.login,
-                        request.body.password
-                    ], function (err, results1, fields) {
+
+                    console.log(request.body.login, request.body.password)
+                    db.run("INSERT INTO users VALUES(null, ?, ?, 0)", request.body.login, request.body.password, function(err, results1, fields) {
+                        console.log(results1)
                         request.session.login = request.body.login
-                        request.session.uid = results1.insertId
+                        request.session.uid = this.lastID
                         let time = 103600000
                         request.session.cookie.expires = new Date(Date.now() + time)
                         request.session.cookie.maxAge = time
@@ -98,10 +107,8 @@ exports.init = function (mysqlConnect) {
     })
 
     app.post('/lcLogin', urlencodedParser, function (request, response) {
-        mysqlConnect.query("SELECT * FROM users where login = ? and password = ? ", [
-            request.body.login,
-            request.body.password
-        ], function (err, results, fields) {
+        db.get("SELECT * FROM users where login = ? and password = ? ", request.body.login, request.body.password, (err, results, fields) => {
+
             if (results.length > 0) {
                 request.session.login = request.body.login
                 request.session.uid = results[0].id
@@ -118,12 +125,10 @@ exports.init = function (mysqlConnect) {
 
     app.post('/lcAddPac', urlencodedParser, function (request, response)
     {
-        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, mysqlConnect, (request, words, mysqlConnect) => {
-            mysqlConnect.query("INSERT INTO dicts VALUES(null, ?, ?, ?, 0)", [
-                request.body.name,
+        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, db, (request, words, mysqlConnect) => {
+            db.run("INSERT INTO dicts VALUES(null, ?, ?, ?, 0)", request.body.name,
                 JSON.stringify(words),
-                request.session.uid
-            ], function (err, results1, fields) {
+                request.session.uid, function(err, results1, fields) {
                 response.send({type: 'redirect', url: '/lc/1'})
             })
         })
@@ -132,18 +137,17 @@ exports.init = function (mysqlConnect) {
     })
 
     app.get('/lc', (req, res) => {
-        renderLc(mysqlConnect, req.session.uid, 1, req.session.login, res, MAX_WORD_LENGTH)
+        renderLc(db, req.session.uid, 1, req.session.login, res, MAX_WORD_LENGTH)
     })
 
     app.get('/lc/:id', (req, res) => {
-        renderLc(mysqlConnect, req.session.uid, req.params.id, req.session.login, res, null)
+        renderLc(db, req.session.uid, req.params.id, req.session.login, res, null)
     })
 
     app.get('/pac/:id', (req, res) => {
 
-        mysqlConnect.query("SELECT * FROM dicts where id = ?", [
-            req.params.id
-        ], function (err, results, fields) {
+        db.get("SELECT * FROM dicts where id = ?", req.params.id, (err, results, fields) => {
+
             if (results.length > 0) {
                 let dict
                 dict = results[0]
@@ -164,12 +168,10 @@ exports.init = function (mysqlConnect) {
     })
 
     app.post('/refreshPac', urlencodedParser, function (request, response) {
-        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, mysqlConnect, (request, words, mysqlConnect) => {
-            mysqlConnect.query("UPDATE dicts SET name = ?, words = ? where id = ?", [
-                request.body.name,
+        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, db, (request, words, mysqlConnect) => {
+            db.run("UPDATE dicts SET name = ?, words = ? where id = ?", request.body.name,
                 JSON.stringify(words),
-                request.body.id
-            ], function (err, results, fields) {
+                request.body.id, function(err, results, fields) {
                 response.send({text: "Пак обновлён"})
             })
         })
@@ -182,9 +184,8 @@ exports.init = function (mysqlConnect) {
     app.post('/autoComplete', urlencodedParser, function (request, response) {
         let names
         let partAuto = "%" + request.body.value + "%"
-        mysqlConnect.query("SELECT id , name FROM dicts WHERE name LIKE ? ORDER BY name LIMIT 10", [
-            partAuto
-        ], function (err, results, fields) {
+        db.all("SELECT id , name FROM dicts WHERE name LIKE ? ORDER BY name LIMIT 10", partAuto, (err, results, fields) => {
+
             if (results.length > 0) {
                 names = JSON.stringify(results)
             } else {
@@ -196,20 +197,20 @@ exports.init = function (mysqlConnect) {
 }
 
 
-function renderLc(mysqlConnect, uid, curPage, login, res, wordLenght){
+function renderLc(db, uid, curPage, login, res, wordLenght){
     if (uid) {
-        mysqlConnect.query("SELECT count (*) as count FROM dicts where uid = ? ", [
-            uid
-        ], function (err, results, fields) {
+        db.get("SELECT count (*) as count FROM dicts where uid = ? ", uid, (err, results, fields) => {
+
             let min = 1
             let max = 1
-            let countPacs = results[0].count
+            console.log(results)
+            let countPacs = results.count
             let perPage = 2
             let maxPage = Math.round(countPacs / perPage)
             curPage = Number.parseInt(curPage)
             let delta = 5
 
-            if (results[0].count >= 1) {
+            if (results.count >= 1) {
                 min = curPage - delta
                 max = curPage + delta
 
@@ -228,11 +229,8 @@ function renderLc(mysqlConnect, uid, curPage, login, res, wordLenght){
 
             let offset = (curPage - 1) * perPage
 
-            mysqlConnect.query("SELECT * FROM dicts WHERE uid = ? ORDER BY id DESC LIMIT ?, ? ", [
-                uid,
-                offset,
-                perPage
-            ], function (err, respDicts, fields1) {
+            db.all("SELECT * FROM dicts WHERE uid = ? ORDER BY id DESC LIMIT ?, ? ", uid, offset, perPage, (err, respDicts, fields1) => {
+
                 res.render('lc', {
                     login: login,
                     dicts: respDicts,

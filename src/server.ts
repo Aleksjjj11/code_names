@@ -8,14 +8,14 @@ const router = require('./router')
 const roomModule = require('./room')
 
 
-const mysqlConnect = mysql.createConnection({
-    host: "127.0.0.1",
-    user: "admin",
-    database: "game",
-    password: "utyi8965",
-})
+//const mysqlConnect = mysql.createConnection({
+//    host: "127.0.0.1",
+//    user: "admin",
+//    database: "game",
+//    password: "utyi8965",
+//})
 
-router.init(mysqlConnect);
+router.init();
 
 const server = http.createServer({
     //cert: fs.readFileSync('/etc/ssl/cn-game/ssl-bundle.crt'),
@@ -43,7 +43,7 @@ ws.on('connection', function(socket, req)
         if(type === 'createRoom') {
             roomId = currentRoomId
             currentRoomId++
-            rooms.set(roomId, new roomModule.Room(ws, mysqlConnect))
+            rooms.set(roomId, new roomModule.Room(ws))
             currentRoom = rooms.get(roomId)
             data = data.trim()
             if(data !== '')
