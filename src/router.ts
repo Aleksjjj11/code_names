@@ -6,7 +6,7 @@ import connectSqlite from 'connect-sqlite3';
 const SQLiteStore = connectSqlite(expressSession);
 
 exports.init = function () {
-    const dbDir = path.resolve('C:\\Users\\anrys\\WebstormProjects\\code_names');
+    const dbPath = 'database.db'
     const helmet = require('helmet')
     const escape = require('escape-html')
     const compression = require('compression')
@@ -17,11 +17,12 @@ exports.init = function () {
     const limitter = require('express-rate-limit')
     const bodyParser = require('body-parser')
     const session = require('express-session')
-    const db = new Database('C:\\Users\\anrys\\WebstormProjects\\code_names\\database.db');
+    console.log(dbPath)
+    const sessionStore = new SQLiteStore({ db: dbPath, dir: 'C:/Users/anrys/WebstormProjects/code_names', table: 'sessions' });
+    console.log("1")
+    const db = new Database('C:\\Users\\anrys\\WebstormProjects\\code_names\\database.db', );
     //const MySQLStore = require('express-mysql-session')(session)
     const crypto = require('crypto')
-    const sessionStore = new SQLiteStore({ dir: dbDir });
-
     const MIN_WORDS_COUNT = 30
     const MAX_WORDS_COUNT = 2000
     const MAX_WORD_LENGTH = 60
