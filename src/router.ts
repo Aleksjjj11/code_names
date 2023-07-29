@@ -6,6 +6,7 @@ import DatabaseService from "./services/databaseService";
 import User from "./models/database_models/User";
 import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
+import AutoCompleteData from "database_models/AutoCompleteData";
 
 const SQLiteStore = connectSqlite(expressSession);
 
@@ -118,11 +119,11 @@ exports.init = function () {
     });
 
     app.get("/lc", (req, res) => {
-        renderLc(db, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
+        renderLc(dbService, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
     });
 
     app.get("/lc/:id", (req, res) => {
-        renderLc(db, req.session.uid, req.params.id, req.session.login, res, null);
+        renderLc(dbService, req.session.uid, req.params.id, req.session.login, res, null);
     });
 
     app.get("/pac/:id", async (request, response) => {
@@ -157,18 +158,13 @@ exports.init = function () {
         res.render("auth", {login: req.session.login});
     });
 
-    app.post("/autoComplete", urlencodedParser, function (request, response) {
-        let names;
-        let partAuto = "%" + request.body.value + "%";
-        db.all("SELECT id , name FROM dicts WHERE name LIKE ? ORDER BY name LIMIT 10", partAuto, (err, results, fields) => {
-
-            if (results.length > 0) {
-                names = JSON.stringify(results);
-            } else {
-                names = "/0";
-            }
-            response.send(names);
-        });
+    app.post("/autoComplete", urlencodedParser, async function (request, response) {
+        let autoCompleteResults: AutoCompleteData[] | string = await dbService.autoComplete(request.body.value);
+        if (typeof autoCompleteResults === 'string' && autoCompleteResults === "/0") {
+            response.send(autoCompleteResults);
+            return;
+        }
+        response.send(JSON.stringify(autoCompleteResults));
     });
 };
 
@@ -183,53 +179,48 @@ function fillUserSession(session: Session, username: string, userId: number) {
 }
 
 
-function renderLc(db, uid, curPage, login, res, wordLenght) {
+async function renderLc( dbService, uid, curPage, login, res, wordLenght) {
     if (uid) {
-        db.get("SELECT count (*) as count FROM dicts where uid = ? ", uid, (err, results, fields) => {
+        let countPacs = await  dbService.getCountByUid(uid);
 
-            let min = 1;
-            let max = 1;
-            let countPacs = results.count;
-            let perPage = 3;
-            let maxPage = Math.ceil(countPacs / perPage);
-            curPage = Number.parseInt(curPage);
-            let delta = 5;
+        let min = 1;
+        let max = 1;
+        let perPage = 3;
+        let maxPage = Math.ceil(countPacs / perPage);
+        curPage = Number.parseInt(curPage);
+        let delta = 5;
 
-            if (results.count >= 1) {
-                min = curPage - delta;
-                max = curPage + delta;
+        if (countPacs >= 1) {
+            min = curPage - delta;
+            max = curPage + delta;
 
-                if (min < 1) {
-                    min = 1;
-                    max = min + delta * 2;
-                }
-
-                if (max > maxPage) {
-                    max = maxPage;
-                    min = max - delta * 2;
-                    if (min < 1) {
-                        min = 1;
-                    }
-                }
+            if (min < 1) {
+                min = 1;
+                max = min + delta * 2;
             }
 
-            let offset = (curPage - 1) * perPage;
+            if (max > maxPage) {
+                max = maxPage;
+                min = max - delta * 2;
+                if (min < 1) {
+                    min = 1;
+                }
+            }
+        }
 
-            db.all("SELECT * FROM dicts WHERE uid = ? ORDER BY id DESC LIMIT ?, ? ", uid, offset, perPage, (err, respDicts, fields1) => {
+        let offset = (curPage - 1) * perPage;
+        let dicts = await  dbService.getDictsByUidWithPagination(uid, offset, perPage);
 
-                res.render("lc", {
-                    login: login,
-                    dicts: respDicts,
-                    minPage: min,
-                    maxPage: max,
-                    curPage: curPage,
-                    lenghtWord: wordLenght,
-                });
-            });
+        res.render("lc", {
+            login: login,
+            dicts: dicts,
+            minPage: min,
+            maxPage: max,
+            curPage: curPage,
+            lengthWord: wordLenght,
         });
     }
 }
-
 async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
     let rawWords: string[] = request.body.words.split(",");
     let words: string[] = [];
@@ -251,8 +242,10 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
     if (words.length >= Constants.MIN_WORDS_COUNT && words.length <= Constants.MAX_WORDS_COUNT) {
         if ("id" in request.body) {
             await dbService.refreshPacInDb(request, words, response, request.body.id);
+            response.send({text: "Ваш пак обновлён!"});
         } else {
             await dbService.insertPacToDb(request, words, response);
+            response.send({type: 'redirect', url: '/lc/1'});
         }
     } else {
         let text;
