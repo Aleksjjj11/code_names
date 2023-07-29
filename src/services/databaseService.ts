@@ -3,6 +3,7 @@ import {open} from "sqlite"
 import User from "database_models/User";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
+import * as bcrypt from 'bcryptjs';
 
 export default class DatabaseService {
     private readonly databasePath: string;
@@ -17,18 +18,38 @@ export default class DatabaseService {
         let result = await db.get(query, username);
         return !!result;
     }
-    
+
     public async addUser(username: string, password: string): Promise<number> {
         const query = "INSERT INTO users VALUES(null, ?, ?, 0)";
         const db = await this.openDb();
-        let result = await db.run(query, username, password);
+
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        
+        let result = await db.run(query, username, hashedPassword);
         return result.lastID ?? 0;
     }
-    
+
     public async authorize(username: string, password: string): Promise<User | undefined> {
-        const query = "SELECT * FROM users where login = ? and password = ? ";
+        const query = "SELECT * FROM users where login = ?";
         const db = await this.openDb();
-        return await db.get<User>(query, username, password);
+
+        
+        const user = await db.get<User>(query, username);
+
+        if (!user) {
+            return undefined; 
+        }
+
+        
+        const passwordMatch = await bcrypt.compare(password, user.password);
+
+        if (passwordMatch) {
+            return user; 
+        } else {
+            return undefined; 
+        }
     }
 
     public async insertPacToDb(request: any, words: string[], response: any) {
