@@ -1,9 +1,9 @@
 function getById(val) {
-    return document.getElementById(val)
+    return document.getElementById(val);
 }
 
 function getBySelector(val) {
-    return document.querySelectorAll(val)
+    return document.querySelectorAll(val);
 }
 
 function createElement(tag) {
@@ -11,23 +11,21 @@ function createElement(tag) {
 }
 
 function replaceApp(html) {
-    getById('app')!.innerHTML = html;
+    getById("app")!.innerHTML = html;
 }
 
-function renderLoader()
-{
-    replaceApp( `
+function renderLoader() {
+    replaceApp(`
         <div class="d-flex justify-content-center">
           <div class="spinner-border" role="status">
           </div>
           <strong>Loading...</strong>
         </div>
-    `)
+    `);
 }
 
-function renderLogin()
-{
-    replaceApp( `
+function renderLogin() {
+    replaceApp(`
 
         <div class="row text-center">
             <div class="col-3 mx-auto mt-5">
@@ -50,30 +48,27 @@ function renderLogin()
                 <div class="btn btn-primary" onclick="reConnectToServer();">Reconnect</div>
             </div>
         </div>
-    `)
+    `);
 }
 
-function renderRoom(roomId)
-{
-    replaceApp( `
+function renderRoom(roomId) {
+    replaceApp(`
         <div class="text-center">
-            <h1>Room id: `+ roomId +`</h1>
+            <h1>Room id: ` + roomId + `</h1>
             <div id="teamContainer" class="d-flex justify-content-around py-3 w-75 mx-auto"></div>
             <div id="roomSettingsContainer"></div>
             <div id="sendWordContainer"></div>
             <div id="winContainer"></div>
             <div id="table"></div>
         </div>
-    `)
+    `);
 }
 
-function renderSettings(remove = false)
-{
-    if(remove)
-        getById('roomSettingsContainer')!.innerHTML = '';
-    else
-    {
-        getById('roomSettingsContainer')!.innerHTML = `
+function renderSettings(remove = false) {
+    if (remove) {
+        getById("roomSettingsContainer")!.innerHTML = "";
+    } else {
+        getById("roomSettingsContainer")!.innerHTML = `
             <div class="btn btn-primary px-4 m-1" onclick="addTeam()">+</div>
             <div class="btn btn-primary px-4 m-1" onclick="deleteTeam()">-</div>
 
@@ -114,118 +109,124 @@ function renderSettings(remove = false)
             </div>
         `;
 
-        Autocomplete("packIdInput")
+        Autocomplete("packIdInput");
 
 
-        let select = getById('selectPackType') as HTMLInputElement
+        let select = getById("selectPackType") as HTMLInputElement;
         select.onchange = () => {
-            let block = getById('packIdInput')
-            if(!select.checked)
-                block!.style.display = "none"
-            else
-                block!.style.display = ""
-        }
+            let block = getById("packIdInput");
+            if (!select.checked) {
+                block!.style.display = "none";
+            } else {
+                block!.style.display = "";
+            }
+        };
 
     }
 
 }
 
 
-function renderSendWord(remove = false)
-{
-    if(remove)
-        getById('sendWordContainer')!.innerHTML = '';
-    else
-        getById('sendWordContainer')!.innerHTML = `
+function renderSendWord(remove = false) {
+    if (remove) {
+        getById("sendWordContainer")!.innerHTML = "";
+    } else {
+        getById("sendWordContainer")!.innerHTML = `
             <div id="timer">0</div>
             <div class="d-flex justify-content-center">
                 <input id="wordInput" class="form-control w-25" type="text">
                 <div class="btn btn-primary mt-2" onclick="setWord();">Send</div>
             </div>
         `;
+    }
 }
 
-function Autocomplete (selector) {
+function Autocomplete(selector) {
 
     let input = document.getElementById(selector)! as HTMLInputElement;
-        input.classList.add('autocomplete-input');
-        let wrap = document.createElement('div');
-        wrap.className = 'autocomplete-wrap col-3 mx-auto';
-        input.parentNode!.insertBefore(wrap, input);
-        wrap.appendChild(input);
+    input.classList.add("autocomplete-input");
+    let wrap = document.createElement("div");
+    wrap.className = "autocomplete-wrap col-3 mx-auto";
+    input.parentNode!.insertBefore(wrap, input);
+    wrap.appendChild(input);
 
-        let list = document.createElement('div');
-        list.className = 'autocomplete-list';
-        wrap.appendChild(list);
+    let list = document.createElement("div");
+    list.className = "autocomplete-list";
+    wrap.appendChild(list);
 
-        let listItems = new Array<HTMLElement>();
-        let focusedItem = -1;
+    let listItems = new Array<HTMLElement>();
+    let focusedItem = -1;
 
-        function setActive(active = true) {
-            if(active)
-                wrap.classList.add('active');
-            else
-                wrap.classList.remove('active');
+    function setActive(active = true) {
+        if (active) {
+            wrap.classList.add("active");
+        } else {
+            wrap.classList.remove("active");
         }
+    }
 
-        function focusItem(index) {
-            if(!listItems.length) return false;
-            if(index > listItems.length - 1) return focusItem(0);
-            if(index < 0) return focusItem(listItems.length - 1);
-            focusedItem = index;
-            unfocusAllItems();
-            listItems[focusedItem].classList.add('focused');
-        }
-        function unfocusAllItems() {
-            listItems.forEach(item => {
-                item.classList.remove('focused');
+    function focusItem(index) {
+        if (!listItems.length) return false;
+        if (index > listItems.length - 1) return focusItem(0);
+        if (index < 0) return focusItem(listItems.length - 1);
+        focusedItem = index;
+        unfocusAllItems();
+        listItems[focusedItem].classList.add("focused");
+    }
+
+    function unfocusAllItems() {
+        listItems.forEach(item => {
+            item.classList.remove("focused");
+        });
+    }
+
+    function selectItem(index) {
+        if (!listItems[index]) return false;
+        input.value = listItems[index].id;
+        setActive(false);
+    }
+
+    input.addEventListener("input", () => {
+        let value = input.value;
+
+        if (!value) {
+            return setActive(false);
+        } else {
+            post("/autoComplete", {value: value}, (resp) => {
+
+                if (resp.responseText != "/0") {
+                    let data = JSON.parse(resp.responseText);
+                    list.innerHTML = "";
+                    listItems = [];
+
+                    data.forEach((dataItem) => {
+
+
+                        let item = document.createElement("div");
+                        item.className = "autocomplete-item";
+                        item.innerHTML = dataItem.name + " (Id:" + dataItem.id + ")";
+                        list.appendChild(item);
+                        item.id = dataItem.id;
+                        listItems.push(item);
+
+                        item.addEventListener("click", function () {
+                            selectItem(listItems.indexOf(item));
+                        });
+
+                    });
+                    setActive(true);
+                } else {
+                    setActive(false);
+                }
             });
         }
-        function selectItem(index) {
-            if(!listItems[index]) return false;
-            input.value = listItems[index].id;
-            setActive(false);
-        }
 
-        input.addEventListener('input', () => {
-            let value = input.value;
+    });
 
-            if(!value) return setActive(false)
-            else {
-                post("/autoComplete", {value: value}, (resp) => {
-
-                    if (resp.responseText != "/0") {
-                        let data = JSON.parse(resp.responseText)
-                        list.innerHTML = '';
-                        listItems = [];
-
-                        data.forEach((dataItem) => {
-
-
-                            let item = document.createElement('div');
-                            item.className = 'autocomplete-item';
-                            item.innerHTML = dataItem.name + " (Id:" + dataItem.id + ")";
-                            list.appendChild(item);
-                            item.id = dataItem.id;
-                            listItems.push(item);
-
-                            item.addEventListener('click', function () {
-                                selectItem(listItems.indexOf(item));
-                            });
-
-                        });
-                        setActive(true);
-                    }
-                        else setActive(false);
-                })
-            }
-
-        });
-
-        document.body.addEventListener('click', function(e) {
-            // @ts-ignore
-            if(!wrap.contains(e.target)) setActive(false);
-        });
+    document.body.addEventListener("click", function (e) {
+        // @ts-ignore
+        if (!wrap.contains(e.target)) setActive(false);
+    });
 
 }
 

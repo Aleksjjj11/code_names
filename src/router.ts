@@ -1,29 +1,33 @@
 import * as path from "path";
+import {Database} from "sqlite3";
+import expressSession, {Session} from "express-session";
+import connectSqlite from "connect-sqlite3";
+import DatabaseService from "./services/databaseService";
+import User from "./models/database_models/User";
+import Constants from "./constants";
+import Dictionary from "database_models/Dictionary";
 
-exports.init = function (mysqlConnect) {
-    const helmet = require('helmet')
-    const escape = require('escape-html')
-    const compression = require('compression')
-    const minify = require('express-minify')
-    const cookieParser = require('cookie-parser')
-    const express = require('express')
-    const app = express()
-    const limitter = require('express-rate-limit')
-    const bodyParser = require('body-parser')
-    const session = require('express-session')
-    const MySQLStore = require('express-mysql-session')(session)
-    const crypto = require('crypto')
+const SQLiteStore = connectSqlite(expressSession);
 
-    const MIN_WORDS_COUNT = 30
-    const MAX_WORDS_COUNT = 2000
-    const MAX_WORD_LENGTH = 60
+exports.init = function () {
+    const helmet = require("helmet");
+    const compression = require("compression");
+    const cookieParser = require("cookie-parser");
+    const express = require("express");
+    const app = express();
+    const limitter = require("express-rate-limit");
+    const bodyParser = require("body-parser");
+    const session = require("express-session");
+    const sessionStore = new SQLiteStore({db: Constants.DATABASE_NAME, dir: "./", table: "sessions"});
+    const db = new Database(`./${Constants.DATABASE_NAME}`);
+    const crypto = require("crypto");
+    const dbService: DatabaseService = new DatabaseService(`./${Constants.DATABASE_NAME}`);
 
-    app.set('view engine', 'ejs')
-    app.set('views', path.join('./src/views'));
+    app.set("view engine", "ejs");
+    app.set("views", path.join("./src/views"));
 
-    app.use(compression())
+    app.use(compression());
 
-    //app.use(helmet.contentSecurityPolicy());
     app.use(helmet.dnsPrefetchControl());
     app.use(helmet.expectCt());
     app.use(helmet.frameguard());
@@ -35,249 +39,229 @@ exports.init = function (mysqlConnect) {
     app.use(helmet.referrerPolicy());
     app.use(helmet.xssFilter());
 
-    app.use(express.static(__dirname + '/public'))
-    app.use(cookieParser())
+    app.use(express.static(__dirname + "/public"));
+    app.use(cookieParser());
 
-    app.listen(8080)
-
-    const sessionStore = new MySQLStore({}, mysqlConnect)
+    app.listen(8080);
 
     app.use(limitter({
         windowMs: 7000,
         max: 7,
-        message: "Too many requests"
-    }))
-
-    app.use(session({
-        secret: 'EHETENANDAYO',
-        store: sessionStore,
-        resave: false,
-        saveUninitialized: false
+        message: "Too many requests",
     }));
 
+    app.use(session({
+        secret: "EHETENANDAYO",
+        store: sessionStore,
+        resave: false,
+        saveUninitialized: false,
+    }));
 
-    const urlencodedParser = bodyParser.json()
+    const urlencodedParser = bodyParser.json();
 
+    app.get("/", (req, res) => {
+        if (!("token" in req.cookies)) {
+            res.cookie("token", crypto.randomBytes(64).toString("hex"), {maxAge: 86400});
+        }
 
-    app.get('/', (req, res) => {
-        if (!('token' in req.cookies))
-            res.cookie('token', crypto.randomBytes(64).toString('hex'), {maxAge: 86400})
+        res.render("main", {login: req.session.login});
+    });
 
-        res.render('main', {login: req.session.login})
-    })
+    app.get("/register", (req, res) => {
+        res.render("register", {login: req.session.login});
+    });
 
-    app.get('/register', (req, res) => {
-        res.render('register', {login: req.session.login})
-    })
+    app.post("/register", urlencodedParser, async function (request, response) {
+        let isExistsUser: boolean = await dbService.isExistsUsername(request.body.login);
+        if (isExistsUser) {
+            response.send({
+                text: "Логин занят",
+                type: "err",
+            });
+            return;
+        }
 
-    app.post('/register', urlencodedParser, function (request, response) {
-        mysqlConnect.query("SELECT count (*) as count FROM users where login = ?", [
-            request.body.login
-        ], function (err, results, fields) {
-            if (results[0].count >= 1) {
-                response.send({text: 'Логин занят', type: 'err'})
+        let createdUserId = await dbService.addUser(request.body.login, request.body.password);
+        if (!createdUserId) {
+            response.send({
+                text: "Произошла ошибка при создании нового пользователя",
+                type: "err",
+            });
+            return;
+        }
+
+        fillUserSession(request.session, request.body.login, createdUserId);
+
+        response.send({
+            type: "redirect",
+            "url": "/",
+        });
+    });
+
+    app.post("/lcLogin", urlencodedParser, async function (request, response) {
+        let authorizeResult: User | undefined = await dbService.authorize(request.body.login, request.body.password);
+        if (!authorizeResult) {
+            response.send({
+                text: "Пользователь не найден",
+                type: "err",
+            });
+            return;
+        }
+
+        fillUserSession(request.session, request.body.login, authorizeResult.id);
+
+        response.send({type: "redirect", url: "/lc"});
+    });
+
+    app.post("/lcAddPac", urlencodedParser, async function (request, response) {
+        await pacProcess(dbService, request, response);
+    });
+
+    app.get("/lc", (req, res) => {
+        renderLc(db, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
+    });
+
+    app.get("/lc/:id", (req, res) => {
+        renderLc(db, req.session.uid, req.params.id, req.session.login, res, null);
+    });
+
+    app.get("/pac/:id", async (request, response) => {
+        const results: Dictionary | undefined = await dbService.getPacById(request.params.id);
+        if (results) {
+            let dict = results;
+            let words = JSON.parse(results.words);
+            dict.words = words.join(",");
+            if (request.session.uid == dict.uid) {
+                response.render("pacSettings", {
+                    login: request.session.login,
+                    dict: dict,
+                    lenghtWord: Constants.MAX_WORD_LENGTH,
+                });
             } else {
-                const p = new Promise((resolve, reject) => {
-                    mysqlConnect.query("INSERT INTO users VALUES(null, ?, ?, 0)", [
-                        request.body.login,
-                        request.body.password
-                    ], function (err, results1, fields) {
-                        request.session.login = request.body.login
-                        request.session.uid = results1.insertId
-                        let time = 103600000
-                        request.session.cookie.expires = new Date(Date.now() + time)
-                        request.session.cookie.maxAge = time
-                        resolve(200);
-                    })
-                })
-                p.then(() => {
-                    response.send({type: 'redirect', url: '/'})
-                })
+                response.render("pacViev", {
+                    login: request.session.login,
+                    dict: dict,
+                    lenghtWord: Constants.MAX_WORD_LENGTH,
+                });
             }
-        })
-    })
+        } else {
+            response.send("Не найдено");
+        }
+    });
 
-    app.post('/lcLogin', urlencodedParser, function (request, response) {
-        mysqlConnect.query("SELECT * FROM users where login = ? and password = ? ", [
-            request.body.login,
-            request.body.password
-        ], function (err, results, fields) {
+    app.post("/refreshPac", urlencodedParser, async function (request, response) {
+        await pacProcess(dbService, request, response);
+    });
+
+    app.get("/auth", (req, res) => {
+        res.render("auth", {login: req.session.login});
+    });
+
+    app.post("/autoComplete", urlencodedParser, function (request, response) {
+        let names;
+        let partAuto = "%" + request.body.value + "%";
+        db.all("SELECT id , name FROM dicts WHERE name LIKE ? ORDER BY name LIMIT 10", partAuto, (err, results, fields) => {
+
             if (results.length > 0) {
-                request.session.login = request.body.login
-                request.session.uid = results[0].id
-                let time = 103600000
-                request.session.cookie.expires = new Date(Date.now() + time)
-                request.session.cookie.maxAge = time
-                response.send({type: 'redirect', url: '/lc'})
-
+                names = JSON.stringify(results);
             } else {
-                response.send({text: 'Пользователь не найден', type: 'err'})
+                names = "/0";
             }
-        })
-    })
+            response.send(names);
+        });
+    });
+};
 
-    app.post('/lcAddPac', urlencodedParser, function (request, response)
-    {
-        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, mysqlConnect, (request, words, mysqlConnect) => {
-            mysqlConnect.query("INSERT INTO dicts VALUES(null, ?, ?, ?, 0)", [
-                request.body.name,
-                JSON.stringify(words),
-                request.session.uid
-            ], function (err, results1, fields) {
-                response.send({type: 'redirect', url: '/lc/1'})
-            })
-        })
-
-
-    })
-
-    app.get('/lc', (req, res) => {
-        renderLc(mysqlConnect, req.session.uid, 1, req.session.login, res, MAX_WORD_LENGTH)
-    })
-
-    app.get('/lc/:id', (req, res) => {
-        renderLc(mysqlConnect, req.session.uid, req.params.id, req.session.login, res, null)
-    })
-
-    app.get('/pac/:id', (req, res) => {
-
-        mysqlConnect.query("SELECT * FROM dicts where id = ?", [
-            req.params.id
-        ], function (err, results, fields) {
-            if (results.length > 0) {
-                let dict
-                dict = results[0]
-                let words = JSON.parse(dict.words)
-                dict.words = ""
-                words.forEach((word) => {
-                    dict.words += word + ","
-                })
-                dict.words = dict.words.slice(0, -1)
-                if (req.session.uid == dict.uid) {
-                    res.render('pacSettings', {login: req.session.login, dict: dict, lenghtWord: MAX_WORD_LENGTH});
-                } else {
-                    res.render('pacViev', {login: req.session.login, dict: dict, lenghtWord: MAX_WORD_LENGTH});
-                }
-            }
-        })
-
-    })
-
-    app.post('/refreshPac', urlencodedParser, function (request, response) {
-        insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, mysqlConnect, (request, words, mysqlConnect) => {
-            mysqlConnect.query("UPDATE dicts SET name = ?, words = ? where id = ?", [
-                request.body.name,
-                JSON.stringify(words),
-                request.body.id
-            ], function (err, results, fields) {
-                response.send({text: "Пак обновлён"})
-            })
-        })
-    })
-
-    app.get('/auth', (req, res) => {
-        res.render('auth', {login: req.session.login})
-    })
-
-    app.post('/autoComplete', urlencodedParser, function (request, response) {
-        let names
-        let partAuto = "%" + request.body.value + "%"
-        mysqlConnect.query("SELECT id , name FROM dicts WHERE name LIKE ? ORDER BY name LIMIT 10", [
-            partAuto
-        ], function (err, results, fields) {
-            if (results.length > 0) {
-                names = JSON.stringify(results)
-            } else {
-                names = "/0"
-            }
-            response.send(names)
-        })
-    }) 
+function fillUserSession(session: Session, username: string, userId: number) {
+    const time = 103600000;
+    // @ts-ignore
+    session.login = username;
+    // @ts-ignore
+    session.uid = userId;
+    session.cookie.expires = new Date(Date.now() + time);
+    session.cookie.maxAge = time;
 }
 
 
-function renderLc(mysqlConnect, uid, curPage, login, res, wordLenght){
+function renderLc(db, uid, curPage, login, res, wordLenght) {
     if (uid) {
-        mysqlConnect.query("SELECT count (*) as count FROM dicts where uid = ? ", [
-            uid
-        ], function (err, results, fields) {
-            let min = 1
-            let max = 1
-            let countPacs = results[0].count
-            let perPage = 2
-            let maxPage = Math.round(countPacs / perPage)
-            curPage = Number.parseInt(curPage)
-            let delta = 5
+        db.get("SELECT count (*) as count FROM dicts where uid = ? ", uid, (err, results, fields) => {
 
-            if (results[0].count >= 1) {
-                min = curPage - delta
-                max = curPage + delta
+            let min = 1;
+            let max = 1;
+            let countPacs = results.count;
+            let perPage = 3;
+            let maxPage = Math.ceil(countPacs / perPage);
+            curPage = Number.parseInt(curPage);
+            let delta = 5;
+
+            if (results.count >= 1) {
+                min = curPage - delta;
+                max = curPage + delta;
 
                 if (min < 1) {
-                    min = 1
-                    max = min + delta * 2
+                    min = 1;
+                    max = min + delta * 2;
                 }
 
                 if (max > maxPage) {
-                    max = maxPage
-                    min = max - delta * 2
-                    if (min < 1)
-                        min = 1
+                    max = maxPage;
+                    min = max - delta * 2;
+                    if (min < 1) {
+                        min = 1;
+                    }
                 }
             }
 
-            let offset = (curPage - 1) * perPage
+            let offset = (curPage - 1) * perPage;
 
-            mysqlConnect.query("SELECT * FROM dicts WHERE uid = ? ORDER BY id DESC LIMIT ?, ? ", [
-                uid,
-                offset,
-                perPage
-            ], function (err, respDicts, fields1) {
-                res.render('lc', {
+            db.all("SELECT * FROM dicts WHERE uid = ? ORDER BY id DESC LIMIT ?, ? ", uid, offset, perPage, (err, respDicts, fields1) => {
+
+                res.render("lc", {
                     login: login,
                     dicts: respDicts,
                     minPage: min,
                     maxPage: max,
                     curPage: curPage,
-                    lenghtWord: wordLenght
-                })
-            })
-        })
+                    lenghtWord: wordLenght,
+                });
+            });
+        });
     }
-
 }
 
-function insertPac(MAX_WORD_LENGTH, MIN_WORDS_COUNT, MAX_WORDS_COUNT, escape, request, response, mysqlConnect, msqlQuery) {
-    {
-        let rawWords = escape(request.body.words)
-        rawWords = rawWords.split(',')
-        let words: string[] = [];
-        rawWords.forEach((rawWord) => {
-            rawWord = rawWord.trim()
-            if ((rawWord.length > 0) && (rawWord.length < MAX_WORD_LENGTH)) {
-                let coincidence = false
-                words.forEach((word) => {
-                    if ((word === rawWord)) {
-                        coincidence = true
-                    }
-                })
-                if (!coincidence)
-                    words.push(rawWord)
+async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
+    let rawWords: string[] = request.body.words.split(",");
+    let words: string[] = [];
+    rawWords.forEach((rawWord) => {
+        rawWord = rawWord.trim();
+        if (rawWord.length > 0 && rawWord.length < Constants.MAX_WORD_LENGTH) {
+            let coincidence = false;
+            words.forEach((word) => {
+                if (word === rawWord) {
+                    coincidence = true;
+                }
+            });
+            if (!coincidence) {
+                words.push(rawWord);
             }
-        })
-        if (words.length >= MIN_WORDS_COUNT && words.length <= MAX_WORDS_COUNT)
-            msqlQuery(request, words, mysqlConnect)
-        else {
-            let text
-            if (words.length < MIN_WORDS_COUNT) {
-                text = 'Добавьте больше слов'
-            } else {
-                text = 'Слов слишком много'
-            }
-            response.send({text: text, type: 'err'})
         }
+    });
+
+    if (words.length >= Constants.MIN_WORDS_COUNT && words.length <= Constants.MAX_WORDS_COUNT) {
+        if ("id" in request.body) {
+            await dbService.refreshPacInDb(request, words, response, request.body.id);
+        } else {
+            await dbService.insertPacToDb(request, words, response);
+        }
+    } else {
+        let text;
+        if (words.length < Constants.MIN_WORDS_COUNT) {
+            text = "Добавьте больше слов";
+        } else {
+            text = "Слов слишком много";
+        }
+        response.send({text: text, type: "err"});
     }
-
-
 }
 
