@@ -16,7 +16,7 @@ class Room {
     turnTeamId = 0;
     capTurn = true;
     adminId = 0;
-    countCards = 30;
+    countCards = 25;
     roundTimer = 120;
     ws: WebSocket;
 
@@ -423,7 +423,7 @@ class Room {
     }
 
     validateStartGame(countCards, roundTimer) {
-        return countCards >= 30 && countCards <= 50 && roundTimer >= 60 && roundTimer <= 140;
+        return countCards >= 25 && countCards <= 50 && roundTimer >= 60 && roundTimer <= 140;
     }
 
     createTeam(i): Team {

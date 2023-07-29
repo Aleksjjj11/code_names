@@ -84,12 +84,12 @@ function renderSettings(remove = false) {
             
             <div class="m-1">
                 <span>Count cards:<span>
-                <input class="btn-check" id="countCards30" name="countCards" value="30" type="radio" checked>
+                <input class="btn-check" id="countCards25" name="countCards" value="25" type="radio" checked>
+                <label class="btn btn-primary" for="countCards25">25</label>
+                <input class="btn-check" id="countCards30" name="countCards" value="30" type="radio">
                 <label class="btn btn-primary" for="countCards30">30</label>
-                <input class="btn-check" id="countCards40" name="countCards" value="40" type="radio">
-                <label class="btn btn-primary" for="countCards40">40</label>
-                <input class="btn-check" id="countCards50" name="countCards" value="50" type="radio">
-                <label class="btn btn-primary" for="countCards50">50</label>
+                <input class="btn-check" id="countCards35" name="countCards" value="35" type="radio">
+                <label class="btn btn-primary" for="countCards35">35</label>
             </div>
             
             <div class="m-1">
