@@ -4,8 +4,8 @@ body {
 }
 
 #table {
-    width: 100%;
-    margin: 10px 0;
+    width: 90%;
+    margin: 1% 5%;
 }
 
 .autocomplete-wrap {
@@ -54,9 +54,9 @@ body {
 
 #table div {
     border-radius: 5px;
-    width: 13%;
-    padding: 20px;
-    margin: 20px;
+    width: 19%;
+    padding: 25px;
+    margin: 1px;
     display: inline-block;
     text-align: center;
     background-color: white;

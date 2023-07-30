@@ -8,6 +8,7 @@ import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
 
+
 const SQLiteStore = connectSqlite(expressSession);
 
 exports.init = function () {
@@ -257,4 +258,3 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
         response.send({text: text, type: "err"});
     }
 }
-
