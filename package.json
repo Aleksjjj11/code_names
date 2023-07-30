@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "node ./dist/src/server.js",
+    "start": "tsc && cp -R ./src/public/css ./dist/src/public/css && node ./dist/src/server.js",
+    "start-windows": "tsc && xcopy /E /I src\\public\\css dist\\src\\public\\css && node ./dist/src/server.js",
     "build-dist": "./node_modules/typescript/bin/tsc"
   },
   "dependencies": {

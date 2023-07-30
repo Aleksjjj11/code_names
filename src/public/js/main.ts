@@ -1,5 +1,5 @@
-let cards: Card[] = [];
-let teams: Team[] = [];
+let cards: any[] = [];
+let teams: any[] = [];
 let selectCards: number[] = [];
 let myCaptainStatus: boolean = false;
 let myTeam = 0;
@@ -20,9 +20,6 @@ function createWebSocket() {
         let type: string = rawData[0];
         let data = rawData[1];
 
-        console.log(type);
-        console.log(data);
-
         if (type === "renderRoom") {
             roomId = data;
             renderRoom(roomId);
@@ -35,7 +32,7 @@ function createWebSocket() {
         }
 
         if (type === "closeCard") {
-            let card: Card = cards[data.id];
+            let card: any = cards[data.id];
             card.color = data.color;
             card.status = 0;
         }
@@ -49,7 +46,7 @@ function createWebSocket() {
         }
 
         if (type === "updateTeam") {
-            let team: Team = teams[data.id];
+            let team: any = teams[data.id];
             team.words = data.words;
             team.color = data.color;
             team.clients = data.clients;
@@ -90,7 +87,7 @@ function createWebSocket() {
 
 function renderTeams(teams) {
     let content = "";
-    teams.forEach(function (team: Team, key) {
+    teams.forEach(function (team: any, key) {
         let divTeam = createElement("div");
         divTeam.className = "team";
         if (!!team.color) {
@@ -143,7 +140,7 @@ function renderTeams(teams) {
 function renderCards() {
     let table = getById("table")!;
     let content = "";
-    cards.forEach(function (card: Card, cardKey: number) {
+    cards.forEach(function (card: any, cardKey: number) {
         let div = createElement("div");
         if (card.status == 0) {
             div.className = "closeCard";
@@ -164,22 +161,16 @@ function renderCards() {
     });
     table.innerHTML = content;
 
-    console.log(`myCaptainStatus: ${myCaptainStatus}`);
     if (!myCaptainStatus) {
         getAllCards(table).forEach(function (element, cardKey: number) {
             element.onclick = function () {
-                console.log("click cluckkk");
                 sendData(socket, "clickCard", cardKey);
             };
         });
     } else {
         getAllCards(table).forEach(function (element, cardKey: number) {
-            console.log(myTeam, cardKey);
-            console.log(teams[myTeam]);
-            console.log(cards[cardKey]);
             if (teams[myTeam].color === cards[cardKey].color) {
                 element.onclick = function () {
-                    console.log("click cluck");
                     let index = selectCards.indexOf(cardKey);
                     if (index >= 0) {
                         selectCards.splice(index, 1);
