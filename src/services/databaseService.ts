@@ -43,7 +43,7 @@ export default class DatabaseService {
         await db.run(query, request.body.name, JSON.stringify(words), id);
     }
 
-    public async getPacById(id: string): Promise<Dictionary | undefined> {
+    public async getPacById(id: number): Promise<Dictionary | undefined> {
         const query = "SELECT * FROM dicts where id = ?";
         const db = await this.openDb();
         return await db.get<Dictionary>(query, id);
