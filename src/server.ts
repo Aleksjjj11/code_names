@@ -75,7 +75,7 @@ ws.on("connection", function (socket, req) {
         }
 
         if (currentRoom !== undefined) {
-            id = await currentRoom.processMessage(type, data, token, id, roomId, socket);
+            id = await currentRoom.processMessage(type, data, id, roomId, socket);
         }
     });
 

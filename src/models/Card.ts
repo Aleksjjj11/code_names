@@ -1,6 +1,6 @@
-class Card {
+export default class Card {
     color: string;
     status: number;
     text: string;
-    teamId: number; 
+    teamId: number;
 }
