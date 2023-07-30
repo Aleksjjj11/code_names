@@ -108,3 +108,8 @@ body {
 #timer {
     font-size: 3em;
 }
+
+.btn-outline-primary {
+    margin-right: 6px; /* Отступы в хедере например между логином и кнопкой выхода */
+    margin-left: 6px;
+}

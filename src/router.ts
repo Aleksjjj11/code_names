@@ -68,6 +68,14 @@ exports.init = function () {
 
         res.render("main", {login: req.session.login});
     });
+    app.get("/logout", (req, res) => {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Ошибка при завершении сеанса:", err);
+            }
+            res.redirect("/");
+        });
+    });
 
     app.get("/register", (req, res) => {
         res.render("register", {login: req.session.login});
