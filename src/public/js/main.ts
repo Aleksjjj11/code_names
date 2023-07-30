@@ -153,7 +153,7 @@ function renderCards() {
         }
         if (selectCards.indexOf(cardKey) >= 0) {
             div.style.border = "3px solid black";
-        } else {
+        } else if (myCaptainStatus){
             div.style.border = "3px solid " + card.color;
         }
         div.innerHTML = card.text;

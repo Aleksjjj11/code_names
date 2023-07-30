@@ -7,6 +7,7 @@ import User from "./models/database_models/User";
 import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
+import * as constants from "constants";
 
 
 const SQLiteStore = connectSqlite(expressSession);
@@ -123,6 +124,14 @@ exports.init = function () {
         renderLc(dbService, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
     });
 
+    app.post("/checkWords", urlencodedParser, async function (request, response) {
+
+        let count = getUniqueWordsFromString(request.body.words).length
+        let text = getTextForPacCheck(count)
+
+        response.send(text);
+    });
+
     app.get("/lc/:id", (req, res) => {
         renderLc(dbService, req.session.uid, req.params.id, req.session.login, res, null);
     });
@@ -158,6 +167,7 @@ exports.init = function () {
     app.get("/auth", (req, res) => {
         res.render("auth", {login: req.session.login});
     });
+
 
     app.post("/autoComplete", urlencodedParser, async function (request, response) {
         let autoCompleteResults: AutoCompleteData[] | string = await dbService.autoComplete(request.body.value);
@@ -223,7 +233,31 @@ async function renderLc( dbService, uid, curPage, login, res, wordLenght) {
     }
 }
 async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
-    let rawWords: string[] = request.body.words.split(",");
+
+    let words = getUniqueWordsFromString(request.body.words)
+
+    if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
+        if ("id" in request.body) {
+            await dbService.refreshPacInDb(request, words, response, request.body.id);
+            response.send({text: "Ваш пак обновлён!"});
+        } else {
+            await dbService.insertPacToDb(request, words, response);
+            response.send({type: 'redirect', url: '/lc/1'});
+        }
+    } else {
+        let text;
+        if (words.length < Constants.MIN_WORDS_FOR_MIN_PAC) {
+            text = "Добавьте больше слов";
+        } else {
+            text = "Слов слишком много";
+        }
+        response.send({text: text, type: "err"});
+    }
+}
+
+function getUniqueWordsFromString(str: string) {
+
+    let rawWords: string[] = str.split(",");
     let words: string[] = [];
     rawWords.forEach((rawWord) => {
         rawWord = rawWord.trim();
@@ -239,22 +273,28 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
             }
         }
     });
+    return words;
+}
 
-    if (words.length >= Constants.MIN_WORDS_COUNT && words.length <= Constants.MAX_WORDS_COUNT) {
-        if ("id" in request.body) {
-            await dbService.refreshPacInDb(request, words, response, request.body.id);
-            response.send({text: "Ваш пак обновлён!"});
-        } else {
-            await dbService.insertPacToDb(request, words, response);
-            response.send({type: 'redirect', url: '/lc/1'});
-        }
-    } else {
-        let text;
-        if (words.length < Constants.MIN_WORDS_COUNT) {
-            text = "Добавьте больше слов";
-        } else {
-            text = "Слов слишком много";
-        }
-        response.send({text: text, type: "err"});
+function getTextForPacCheck(count: number) {
+
+    let text: string;
+
+    if (count < Constants.MIN_WORDS_FOR_MIN_PAC){
+        text = `Не хватает cлов для пака минимального размера - ${Constants.MIN_WORDS_FOR_MIN_PAC - count}`;
     }
+    else if (count < Constants.MIN_WORDS_FOR_MEDIUM_PAC){
+        text = `Не хватает cлов для пака среднего размера - ${Constants.MIN_WORDS_FOR_MEDIUM_PAC - count}`;
+    }
+    else if (count < Constants.MIN_WORDS_FOR_MAX_PAC){
+        text = `Не хватает cлов для пака большого размера - ${Constants.MIN_WORDS_FOR_MAX_PAC - count}`;
+    }
+    else if (count <= Constants.MAX_WORDS_COUNT){
+        text = `Слов достаточно`;
+    }
+    else {
+        text = `Слов слишком много, удалите ${count - Constants.MAX_WORDS_COUNT} слов`;
+    }
+
+    return text;
 }

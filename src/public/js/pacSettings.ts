@@ -5,3 +5,5 @@ pacForm((name, words) => {
         document.getElementById("err")!.innerHTML = data.text;
     });
 });
+
+SetWordsCountOnInputField()
