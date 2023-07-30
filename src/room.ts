@@ -423,7 +423,7 @@ class Room {
     }
 
     validateStartGame(countCards, roundTimer) {
-        return countCards >= 25 && countCards <= 50 && roundTimer >= 60 && roundTimer <= 140;
+        return countCards >= 25 && countCards <= 35 && roundTimer >= 60 && roundTimer <= 140;
     }
 
     createTeam(i): Team {

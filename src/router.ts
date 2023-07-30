@@ -7,7 +7,7 @@ import User from "./models/database_models/User";
 import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
-import * as bcrypt from 'bcryptjs';
+
 
 const SQLiteStore = connectSqlite(expressSession);
 

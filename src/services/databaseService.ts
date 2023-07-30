@@ -22,10 +22,8 @@ export default class DatabaseService {
     public async addUser(username: string, password: string): Promise<number> {
         const query = "INSERT INTO users VALUES(null, ?, ?, 0)";
         const db = await this.openDb();
-
         
         const hashedPassword = await bcrypt.hash(password, 10);
-
         
         let result = await db.run(query, username, hashedPassword);
         return result.lastID ?? 0;
@@ -34,14 +32,12 @@ export default class DatabaseService {
     public async authorize(username: string, password: string): Promise<User | undefined> {
         const query = "SELECT * FROM users where login = ?";
         const db = await this.openDb();
-
         
         const user = await db.get<User>(query, username);
 
         if (!user) {
             return undefined; 
         }
-
         
         const passwordMatch = await bcrypt.compare(password, user.password);
 
