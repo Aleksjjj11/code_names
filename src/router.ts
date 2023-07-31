@@ -1,5 +1,4 @@
 import * as path from "path";
-import {Database} from "sqlite3";
 import expressSession, {Session} from "express-session";
 import connectSqlite from "connect-sqlite3";
 import DatabaseService from "./services/databaseService";
@@ -20,7 +19,6 @@ exports.init = function () {
     const bodyParser = require("body-parser");
     const session = require("express-session");
     const sessionStore = new SQLiteStore({db: Constants.DATABASE_NAME, dir: "./", table: "sessions"});
-    const db = new Database(`./${Constants.DATABASE_NAME}`);
     const crypto = require("crypto");
     const dbService: DatabaseService = new DatabaseService(`./${Constants.DATABASE_NAME}`);
 
