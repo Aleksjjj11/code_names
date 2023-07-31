@@ -8,7 +8,7 @@ function pacForm(callback: (pacName: string, words: string) => void) {
 
 }
 
-function SetWordsCountOnInputField(){
+function setWordsCountOnInputField(){
     let text = document.getElementById("count");
     let area = document.getElementById("words") as HTMLInputElement;
     let delay = 0.8

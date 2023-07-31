@@ -1,4 +1,4 @@
-SetWordsCountOnInputField()
+setWordsCountOnInputField();
 
 pacForm((pacName, words) => {
     post("/lcAddPac", {name: pacName, words: words}, (resp) => {

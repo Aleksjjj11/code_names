@@ -6,4 +6,4 @@ pacForm((name, words) => {
     });
 });
 
-SetWordsCountOnInputField()
+setWordsCountOnInputField()

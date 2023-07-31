@@ -122,8 +122,8 @@ exports.init = function () {
 
     app.post("/checkWords", urlencodedParser, async function (request, response) {
 
-        let count = getUniqueWordsFromString(request.body.words).length
-        let text = getTextForPacCheck(count)
+        let count = getUniqueWordsFromString(request.body.words).length;
+        let text = getTextForPacCheck(count);
 
         response.send(text);
     });
@@ -163,7 +163,6 @@ exports.init = function () {
     app.get("/auth", (req, res) => {
         res.render("auth", {login: req.session.login});
     });
-
 
     app.post("/autoComplete", urlencodedParser, async function (request, response) {
         let autoCompleteResults: AutoCompleteData[] | string = await dbService.autoComplete(request.body.value);
@@ -230,7 +229,7 @@ async function renderLc( dbService, uid, curPage, login, res, wordLenght) {
 }
 async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
 
-    let words = getUniqueWordsFromString(request.body.words)
+    let words: string[] = getUniqueWordsFromString(request.body.words)
 
     if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
         if ("id" in request.body) {
@@ -258,23 +257,18 @@ function getUniqueWordsFromString(str: string) {
 
 function getTextForPacCheck(count: number) {
 
-    let text: string;
-
     if (count < Constants.MIN_WORDS_FOR_MIN_PAC){
-        text = `Не хватает cлов для пака минимального размера - ${Constants.MIN_WORDS_FOR_MIN_PAC - count}`;
+        return `Не хватает cлов для пака минимального размера - ${Constants.MIN_WORDS_FOR_MIN_PAC - count}`;
     }
     else if (count < Constants.MIN_WORDS_FOR_MEDIUM_PAC){
-        text = `Не хватает cлов для пака среднего размера - ${Constants.MIN_WORDS_FOR_MEDIUM_PAC - count}`;
+        return `Не хватает cлов для пака среднего размера - ${Constants.MIN_WORDS_FOR_MEDIUM_PAC - count}`;
     }
     else if (count < Constants.MIN_WORDS_FOR_MAX_PAC){
-        text = `Не хватает cлов для пака большого размера - ${Constants.MIN_WORDS_FOR_MAX_PAC - count}`;
+        return `Не хватает cлов для пака большого размера - ${Constants.MIN_WORDS_FOR_MAX_PAC - count}`;
     }
     else if (count <= Constants.MAX_WORDS_COUNT){
-        text = `Слов достаточно`;
-    }
-    else {
-        text = `Слов слишком много, удалите ${count - Constants.MAX_WORDS_COUNT} слов`;
+        return `Слов достаточно`;
     }
 
-    return text;
+    return`Слов слишком много, удалите ${count - Constants.MAX_WORDS_COUNT} слов`;
 }
