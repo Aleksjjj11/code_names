@@ -1,5 +1,4 @@
 import * as path from "path";
-import {Database} from "sqlite3";
 import expressSession, {Session} from "express-session";
 import connectSqlite from "connect-sqlite3";
 import DatabaseService from "./services/databaseService";
@@ -7,7 +6,6 @@ import User from "./models/database_models/User";
 import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
-
 
 const SQLiteStore = connectSqlite(expressSession);
 
@@ -21,7 +19,6 @@ exports.init = function () {
     const bodyParser = require("body-parser");
     const session = require("express-session");
     const sessionStore = new SQLiteStore({db: Constants.DATABASE_NAME, dir: "./", table: "sessions"});
-    const db = new Database(`./${Constants.DATABASE_NAME}`);
     const crypto = require("crypto");
     const dbService: DatabaseService = new DatabaseService(`./${Constants.DATABASE_NAME}`);
 
@@ -121,6 +118,14 @@ exports.init = function () {
 
     app.get("/lc", (req, res) => {
         renderLc(dbService, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
+    });
+
+    app.post("/checkWords", urlencodedParser, async function (request, response) {
+
+        let count = getUniqueWordsFromString(request.body.words).length;
+        let text = getTextForPacCheck(count);
+
+        response.send(text);
     });
 
     app.get("/lc/:id", (req, res) => {
@@ -223,24 +228,10 @@ async function renderLc( dbService, uid, curPage, login, res, wordLenght) {
     }
 }
 async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
-    let rawWords: string[] = request.body.words.split(",");
-    let words: string[] = [];
-    rawWords.forEach((rawWord) => {
-        rawWord = rawWord.trim();
-        if (rawWord.length > 0 && rawWord.length < Constants.MAX_WORD_LENGTH) {
-            let coincidence = false;
-            words.forEach((word) => {
-                if (word === rawWord) {
-                    coincidence = true;
-                }
-            });
-            if (!coincidence) {
-                words.push(rawWord);
-            }
-        }
-    });
 
-    if (words.length >= Constants.MIN_WORDS_COUNT && words.length <= Constants.MAX_WORDS_COUNT) {
+    let words: string[] = getUniqueWordsFromString(request.body.words)
+
+    if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
         if ("id" in request.body) {
             await dbService.refreshPacInDb(request, words, response, request.body.id);
             response.send({text: "Ваш пак обновлён!"});
@@ -250,11 +241,34 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
         }
     } else {
         let text;
-        if (words.length < Constants.MIN_WORDS_COUNT) {
+        if (words.length < Constants.MIN_WORDS_FOR_MIN_PAC) {
             text = "Добавьте больше слов";
         } else {
             text = "Слов слишком много";
         }
         response.send({text: text, type: "err"});
     }
+}
+
+function getUniqueWordsFromString(str: string) {
+    let words: string[] = str.split(",").map(x => x.trim()).filter(x => x.length > 0);
+    return [...new Set(words)];
+}
+
+function getTextForPacCheck(count: number) {
+
+    if (count < Constants.MIN_WORDS_FOR_MIN_PAC){
+        return `Не хватает cлов для пака минимального размера - ${Constants.MIN_WORDS_FOR_MIN_PAC - count}`;
+    }
+    else if (count < Constants.MIN_WORDS_FOR_MEDIUM_PAC){
+        return `Не хватает cлов для пака среднего размера - ${Constants.MIN_WORDS_FOR_MEDIUM_PAC - count}`;
+    }
+    else if (count < Constants.MIN_WORDS_FOR_MAX_PAC){
+        return `Не хватает cлов для пака большого размера - ${Constants.MIN_WORDS_FOR_MAX_PAC - count}`;
+    }
+    else if (count <= Constants.MAX_WORDS_COUNT){
+        return `Слов достаточно`;
+    }
+
+    return`Слов слишком много, удалите ${count - Constants.MAX_WORDS_COUNT} слов`;
 }

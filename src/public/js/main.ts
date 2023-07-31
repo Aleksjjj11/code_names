@@ -147,9 +147,11 @@ function renderCards() {
         }
         if (!!card.color) {
             div.style.backgroundColor = card.color;
+        } else {
+            card.color = "#F0EAD6"
         }
         if (card.color === "black") {
-            div.style.color = "white";
+            div.style.color = "#F0EAD6";
         }
         if (selectCards.indexOf(cardKey) >= 0) {
             div.style.border = "3px solid black";

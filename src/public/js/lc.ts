@@ -1,3 +1,5 @@
+setWordsCountOnInputField();
+
 pacForm((pacName, words) => {
     post("/lcAddPac", {name: pacName, words: words}, (resp) => {
         let data = JSON.parse(resp.responseText);
