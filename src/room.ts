@@ -126,7 +126,7 @@ class Room {
             this.cards.push({
                 status: 1,
                 text: words[num],
-                color: "lightgrey",
+                color: "#F0EAD6",
                 teamId: Constants.WHITE_CARD_TEAM,
             } as Card);
             num++;

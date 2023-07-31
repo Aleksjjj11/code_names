@@ -7,8 +7,6 @@ import User from "./models/database_models/User";
 import Constants from "./constants";
 import Dictionary from "database_models/Dictionary";
 import AutoCompleteData from "database_models/AutoCompleteData";
-import * as constants from "constants";
-
 
 const SQLiteStore = connectSqlite(expressSession);
 
@@ -256,24 +254,8 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
 }
 
 function getUniqueWordsFromString(str: string) {
-
-    let rawWords: string[] = str.split(",");
-    let words: string[] = [];
-    rawWords.forEach((rawWord) => {
-        rawWord = rawWord.trim();
-        if (rawWord.length > 0 && rawWord.length < Constants.MAX_WORD_LENGTH) {
-            let coincidence = false;
-            words.forEach((word) => {
-                if (word === rawWord) {
-                    coincidence = true;
-                }
-            });
-            if (!coincidence) {
-                words.push(rawWord);
-            }
-        }
-    });
-    return words;
+    let words: string[] = str.split(",").map(x => x.trim()).filter(x => x.length > 0);
+    return [...new Set(words)];
 }
 
 function getTextForPacCheck(count: number) {
