@@ -2,11 +2,11 @@
     <a class="h5 my-0 me-md-left fw-normal p-2 flex-grow-1 bd-highlight" href="/">
         <p class="h5 my-0 me-md-left fw-normal p-2 flex-grow-1 bd-highlight">Shitting CodeNames Corporation</p>
     </a>
-    <% if (login !== undefined) {%>
-        <a class="btn btn-outline-primary" href="/lc"><%=login%></a>
-    <% } else {%>
-        <a class="btn btn-outline-primary mr-3" href="/auth">Login</a>
-        <a class="btn btn-outline-primary" href="/register">Register</a>
+    <% if (login !== undefined) { %>
+        <a class="btn btn-outline-primary mr-2" href="/lc"><%= login %></a>
+        <a class="btn btn-outline-primary mr-2" href="/logout">Выход</a>
+    <% } else { %>
+        <a class="btn btn-outline-primary mr-3" href="/auth">Вход</a>
+        <a class="btn btn-outline-primary" href="/register">Регистрация</a>
     <% } %>
 </header>
-
