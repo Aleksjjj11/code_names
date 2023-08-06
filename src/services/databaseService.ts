@@ -23,13 +23,26 @@ export default class DatabaseService {
     }
 
     public static async addUser(username: string, password: string): Promise<number> {
+        if (!username) {
+            throw new Error("Username не может быть пустым");
+        }
+
+        if (!password) {
+            throw new Error("Password не может быть пустым");
+        }
+
         const query = "INSERT INTO users VALUES(null, ?, ?)";
         const db = await this.openDb();
-        
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+
         let result = await db.run(query, username, hashedPassword);
-        return result.lastID ?? 0;
+
+        if (!result.lastID) {
+            throw new Error("Не удалось создать пользователя");
+        }
+
+        return result.lastID;
     }
 
     public static async authorize(username: string, password: string): Promise<User | undefined> {

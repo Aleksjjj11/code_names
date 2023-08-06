@@ -87,21 +87,20 @@ exports.init = function () {
             return;
         }
 
-        let createdUserId = await DatabaseService.addUser(request.body.login, request.body.password);
-        if (!createdUserId) {
+        try {
+            let createdUserId = await DatabaseService.addUser(request.body.login, request.body.password);
+            fillUserSession(request.session, request.body.login, createdUserId);
+
             response.send({
-                text: "Произошла ошибка при создании нового пользователя",
+                type: "redirect",
+                "url": "/",
+            });
+        } catch (ex) {
+            response.send({
+                text: ex.message,
                 type: "err",
             });
-            return;
         }
-
-        fillUserSession(request.session, request.body.login, createdUserId);
-
-        response.send({
-            type: "redirect",
-            "url": "/",
-        });
     });
 
     app.post("/lcLogin", urlencodedParser, async function (request, response) {
