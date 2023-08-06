@@ -1,3 +1,6 @@
+import DatabaseService from "./services/databaseService";
+import Constants from "./constants";
+
 const websocketServer = require("ws");
 const fs = require("fs");
 const http = require("http");
@@ -6,6 +9,7 @@ const router = require("./router");
 const roomModule = require("./room");
 
 router.init();
+DatabaseService.init(`./${Constants.DATABASE_NAME}`);
 
 const server = http.createServer({
     //cert: fs.readFileSync('/etc/ssl/cn-game/ssl-bundle.crt'),
@@ -53,7 +57,7 @@ ws.on("connection", function (socket, req) {
 
 
         if (type === "reConnect") {
-            let rid = parseInt(data);
+            let rid: number = parseInt(data);
             if (rooms.has(rid)) {
                 let room = rooms.get(rid);
                 if (room.isStart) {

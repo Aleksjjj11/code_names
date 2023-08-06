@@ -7,8 +7,6 @@ import Card from "models/Card";
 
 const wordsLib = require("./words");
 
-const dbService = new DatabaseService(`./${Constants.DATABASE_NAME}`);
-
 class Room {
     private readonly ws: WebSocket;
 
@@ -484,7 +482,7 @@ class Room {
             return wordsLib.getWords();
         }
 
-        const pack = await dbService.getPacById(packId);
+        const pack = await DatabaseService.getPacById(packId);
         if (!pack) {
             return new Array<string>(0);
         }
