@@ -20,7 +20,6 @@ exports.init = function () {
     const session = require("express-session");
     const sessionStore = new SQLiteStore({db: Constants.DATABASE_NAME, dir: "./", table: "sessions"});
     const crypto = require("crypto");
-    const dbService: DatabaseService = new DatabaseService(`./${Constants.DATABASE_NAME}`);
 
     app.set("view engine", "ejs");
     app.set("views", path.join("./src/views"));
@@ -79,7 +78,7 @@ exports.init = function () {
     });
 
     app.post("/register", urlencodedParser, async function (request, response) {
-        let isExistsUser: boolean = await dbService.isExistsUsername(request.body.login);
+        let isExistsUser: boolean = await DatabaseService.isExistsUsername(request.body.login);
         if (isExistsUser) {
             response.send({
                 text: "Логин занят",
@@ -88,7 +87,7 @@ exports.init = function () {
             return;
         }
 
-        let createdUserId = await dbService.addUser(request.body.login, request.body.password);
+        let createdUserId = await DatabaseService.addUser(request.body.login, request.body.password);
         if (!createdUserId) {
             response.send({
                 text: "Произошла ошибка при создании нового пользователя",
@@ -106,7 +105,7 @@ exports.init = function () {
     });
 
     app.post("/lcLogin", urlencodedParser, async function (request, response) {
-        let authorizeResult: User | undefined = await dbService.authorize(request.body.login, request.body.password);
+        let authorizeResult: User | undefined = await DatabaseService.authorize(request.body.login, request.body.password);
         if (!authorizeResult) {
             response.send({
                 text: "Пользователь не найден",
@@ -121,11 +120,11 @@ exports.init = function () {
     });
 
     app.post("/lcAddPac", urlencodedParser, async function (request, response) {
-        await pacProcess(dbService, request, response);
+        await pacProcess(DatabaseService, request, response);
     });
 
-    app.get("/lc", (req, res) => {
-        renderLc(dbService, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
+    app.get("/lc", async (req, res) => {
+        await renderLc(DatabaseService, req.session.uid, 1, req.session.login, res, Constants.MAX_WORD_LENGTH);
     });
 
     app.post("/checkWords", urlencodedParser, async function (request, response) {
@@ -136,12 +135,12 @@ exports.init = function () {
         response.send(text);
     });
 
-    app.get("/lc/:id", (req, res) => {
-        renderLc(dbService, req.session.uid, req.params.id, req.session.login, res, null);
+    app.get("/lc/:id", async (req, res) => {
+        await renderLc(DatabaseService, req.session.uid, req.params.id, req.session.login, res, null);
     });
 
     app.get("/pac/:id", async (request, response) => {
-        const results: Dictionary | undefined = await dbService.getPacById(request.params.id);
+        const results: Dictionary | undefined = await DatabaseService.getPacById(request.params.id);
         if (results) {
             let dict = results;
             let words = JSON.parse(results.words);
@@ -165,7 +164,7 @@ exports.init = function () {
     });
 
     app.post("/refreshPac", urlencodedParser, async function (request, response) {
-        await pacProcess(dbService, request, response);
+        await pacProcess(DatabaseService, request, response);
     });
 
     app.get("/auth", (req, res) => {
@@ -173,7 +172,7 @@ exports.init = function () {
     });
 
     app.post("/autoComplete", urlencodedParser, async function (request, response) {
-        let autoCompleteResults: AutoCompleteData[] | string = await dbService.autoComplete(request.body.value);
+        let autoCompleteResults: AutoCompleteData[] | string = await DatabaseService.autoComplete(request.body.value);
         if (typeof autoCompleteResults === 'string' && autoCompleteResults === "/0") {
             response.send(autoCompleteResults);
             return;
@@ -241,10 +240,10 @@ async function pacProcess(dbService: DatabaseService, request: any, response: an
 
     if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
         if ("id" in request.body) {
-            await dbService.refreshPacInDb(request, words, response, request.body.id);
+            await DatabaseService.refreshPacInDb(request, words, response, request.body.id);
             response.send({text: "Ваш пак обновлён!"});
         } else {
-            await dbService.insertPacToDb(request, words, response);
+            await DatabaseService.insertPacToDb(request, words, response);
             response.send({type: 'redirect', url: '/lc/1'});
         }
     } else {
