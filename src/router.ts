@@ -119,7 +119,7 @@ exports.init = function () {
     });
 
     app.post("/lcAddPac", urlencodedParser, async function (request, response) {
-        await pacProcess(DatabaseService, request, response);
+        await pacProcess(request, response);
     });
 
     app.get("/lc", async (req, res) => {
@@ -163,7 +163,7 @@ exports.init = function () {
     });
 
     app.post("/refreshPac", urlencodedParser, async function (request, response) {
-        await pacProcess(DatabaseService, request, response);
+        await pacProcess(request, response);
     });
 
     app.get("/auth", (req, res) => {
@@ -233,26 +233,26 @@ async function renderLc( dbService, uid, curPage, login, res, wordLenght) {
         });
     }
 }
-async function pacProcess(dbService: DatabaseService, request: any, response: any): Promise<void> {
+async function pacProcess(request: any, response: any): Promise<void> {
+    try {
+        let words: string[] = getUniqueWordsFromString(request.body.words);
 
-    let words: string[] = getUniqueWordsFromString(request.body.words)
-
-    if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
-        if ("id" in request.body) {
-            await DatabaseService.refreshPacInDb(request, words, response, request.body.id);
-            response.send({text: "Ваш пак обновлён!"});
+        if (words.length >= Constants.MIN_WORDS_FOR_MIN_PAC && words.length <= Constants.MAX_WORDS_COUNT) {
+            if ("id" in request.body) {
+                await DatabaseService.refreshPacInDb(request, words, response, request.body.id);
+                response.send({text: "Ваш пак обновлён!"});
+            } else {
+                await DatabaseService.insertPacToDb(request.body.name, request.session.uid, words);
+                response.send({type: "redirect", url: "/lc/1"});
+            }
         } else {
-            await DatabaseService.insertPacToDb(request, words, response);
-            response.send({type: 'redirect', url: '/lc/1'});
+            let errorMessage = words.length < Constants.MIN_WORDS_FOR_MIN_PAC
+                ? "Добавьте больше слов"
+                : "Слов слишком много";
+            response.send({text: errorMessage, type: "err"});
         }
-    } else {
-        let text;
-        if (words.length < Constants.MIN_WORDS_FOR_MIN_PAC) {
-            text = "Добавьте больше слов";
-        } else {
-            text = "Слов слишком много";
-        }
-        response.send({text: text, type: "err"});
+    } catch (ex) {
+        response.send({text: ex.message, type: "err"});
     }
 }
 
