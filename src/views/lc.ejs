@@ -10,21 +10,30 @@
     <body>
         <%- include("header") %>
             <main class="container">
-                <div class="pricing-header px-3 py-3   mx-auto text-center">
+                <div class="pricing-header px-3 py-3 mx-auto text-center">
                     <h1 class="display-4"> <%= login %></h1>
                 </div>
 
                 <div class="text-center">
-                    <div class="h2"> Добавить новый пак</div>
-                    <div class="col-3 mx-auto my-1 "> <input id="pacName" class="form-control" type="text" placeholder="Название пака"> </div>
-                    <textarea class="form-control my-1" placeholder="Слова пака через запятую" id="words" rows="3" style=" height: 172px; resize: none;"></textarea>
-                    <div class=" h3 text-warning my-1 w-25 mx-auto" id="count"></div>
-                    <div class=" h3 text-dangerous my-4 w-25 mx-auto" id="err"></div>
-                    <button type="button" id="send" class="btn btn-info my-1">Добавить</button>
+                    <form id="addPackForm" class="row g-3 needs-validation">
+                        <div class="h2"> Добавить новый пак</div>
+                        <div class="col-3 mx-auto my-1 ">
+                            <div class="input-group has-validation">
+                                <input id="pacName" class="form-control" type="text" placeholder="Название пака">
+                                <div class="invalid-feedback">
+                                    Введите название пака.
+                                </div>
+                            </div>
+                        </div>
+                        <textarea class="form-control my-1" placeholder="Слова пака через запятую" id="words" rows="3" style=" height: 172px; resize: none;"></textarea>
+                        <div class="h3 text-warning align-content-center" id="count"></div>
+                        <div class="h3 text-dangerous align-content-center" id="err"></div>
+                        <button type="button" id="send" class="btn btn-info my-1">Добавить</button>
+                    </form>
 
                 </div>
 
-                <div class="pricing-header px-3 py-3   mx-auto text-center">
+                <div class="pricing-header px-3 py-3 mx-auto text-center">
                     <h2 class="lead">Список ваших паков</h2>
                 </div>
                 <% if (!(minPage === 1 && maxPage === 1)) {%>

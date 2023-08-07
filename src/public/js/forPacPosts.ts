@@ -1,26 +1,46 @@
-function pacForm(callback: (pacName: string, words: string) => void) {
-    let but = document.getElementById("send") as HTMLButtonElement;
-    but.onclick = () => {
-        let pacName = (document.querySelector("#pacName") as HTMLInputElement).value;
-        let words = (document.querySelector("#words") as HTMLInputElement).value;
-        callback(pacName, words);
-    };
+const sendButton = document.getElementById("send") as HTMLButtonElement;
+const addPackForm = document.getElementById("addPackForm") as HTMLFormElement;
+const packNameInput = document.getElementById("pacName") as HTMLInputElement;
+const wordsInput = document.getElementById("words") as HTMLInputElement;
+const countWordsElement = document.getElementById("count");
 
+packNameInput.oninput = (ev: Event) => {
+    ev.preventDefault();
+    if (packNameInput.classList.contains("is-invalid")) {
+        packNameInput.classList.remove("is-invalid");
+    }
+}
+
+addPackForm.onsubmit = (ev: Event) => {
+    ev.preventDefault();
+}
+
+function pacForm(callback: (pacName: string, words: string) => void) {
+    sendButton.onclick = () => {
+        const packName = packNameInput.value;
+        const words = wordsInput.value;
+
+        if (!packName) {
+            packNameInput.classList.add("is-invalid");
+        }
+
+        if (!!packName && !!words) {
+            callback(packName, words);
+        }
+    };
 }
 
 function setWordsCountOnInputField(){
-    let text = document.getElementById("count");
-    let area = document.getElementById("words") as HTMLInputElement;
-    let delay = 0.8
-    let timer;
+    let delay = 0.8;
+    let timer: any;
 
-    area.oninput = () => {
+    wordsInput.oninput = () => {
         clearTimeout(timer);
 
         timer = setTimeout(function() {
 
-            post("/checkWords", {words: area.value}, (resp) => {
-                text!.innerHTML = resp.responseText
+            post("/checkWords", {words: wordsInput.value}, (resp) => {
+                countWordsElement!.innerHTML = resp.responseText
             });
 
         }, delay * 1000);
