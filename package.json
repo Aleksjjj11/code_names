@@ -38,7 +38,7 @@
     "ws": "^7.4.2"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.0",
+    "@types/bcryptjs": "^2.4.2",
     "@types/sqlite3": "^3.1.8"
   }
 }

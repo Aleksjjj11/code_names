@@ -64,10 +64,18 @@ export default class DatabaseService {
         }
     }
 
-    public static async insertPacToDb(request: any, words: string[], response: any) {
+    public static async insertPacToDb(dictionaryName: string, userId: number, words: string[]) {
+        if (!userId) {
+            throw new Error("userId mustn't be null");
+        }
+
+        if (!dictionaryName) {
+            throw new Error("Dictionary name mustn't be empty");
+        }
+
         const query = "INSERT INTO dicts VALUES(null, ?, ?, ?, 0)";
         const db = await this.openDb();
-        await db.run(query, request.session.uid, request.body.name, JSON.stringify(words));
+        await db.run(query, userId, dictionaryName, JSON.stringify(words));
     }
 
     public static async refreshPacInDb(request: any, words: string[], response: any, id: number) {
