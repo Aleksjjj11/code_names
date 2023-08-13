@@ -14,9 +14,21 @@
                     <div class="text-center w-25 mx-auto">
                         <h1 class="h3 mb-3 fw-normal">Введите логин и пароль</h1>
                         <h2 id="err"></h2>
-                        <input type="text" id="log" class="form-control" placeholder="Login" required="" autofocus="">
-                        <input type="password" id="pas" class="form-control" placeholder="Password" required="">
-                        <button id="send" class="w-100 btn btn-lg btn-primary" type="submit">Sign in</button>
+                        <form id="loginForm" class="row g-3 needs-validation" novalidate>
+                            <div class="input-group has-validation">
+                                <input type="text" id="log" class="form-control" placeholder="Login" required autofocus>
+                                <div class="invalid-feedback">
+                                    Please enter a login.
+                                </div>
+                            </div>
+                            <div class="input-group has-validation">
+                                <input type="password" id="pas" class="form-control" placeholder="Password" required>
+                                <div class="invalid-feedback">
+                                    Please enter a password.
+                                </div>
+                            </div>
+                            <button id="send" class="btn btn-primary" type="submit">Sign in</button>
+                        </form>
                     </div>
                 </main>
             </div>

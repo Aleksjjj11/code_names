@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "start": "tsc && cp -R ./src/public/css ./dist/src/public/css && cp -R ./src/sql/*.sql ./dist/src/sql && node ./dist/src/server.js",
-    "start-windows": "tsc && xcopy /E /I src\\public\\css dist\\src\\public\\css && xcopy /E /I src\\sql\\*.sql dist\\src\\sql && node ./dist/src/server.js",
+    "start": "tsc-watch --onFirstSuccess \"cp -R ./src/sql/*.sql ./dist/src/sql && cp -R ./src/public/css ./dist/src/public/css\" --onsuccess \"node ./dist/src/server.js\"",
+    "start-windows": "tsc-watch --onFirstSuccess \"xcopy /E /I src\\public\\css dist\\src\\public\\css && xcopy /E /I src\\sql\\*.sql dist\\src\\sql\" --onsuccess \"node ./dist/src/server.js\"",
     "build-dist": "./node_modules/typescript/bin/tsc"
   },
   "dependencies": {
@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
-    "@types/sqlite3": "^3.1.8"
+    "@types/sqlite3": "^3.1.8",
+    "tsc-watch": "^6.0.4"
   }
 }
