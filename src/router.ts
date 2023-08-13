@@ -104,18 +104,25 @@ exports.init = function () {
     });
 
     app.post("/lcLogin", urlencodedParser, async function (request, response) {
-        let authorizeResult: User | undefined = await DatabaseService.authorize(request.body.login, request.body.password);
-        if (!authorizeResult) {
+        try {
+            let authorizeResult: User | undefined = await DatabaseService.authorize(request.body.login, request.body.password);
+            if (!authorizeResult) {
+                response.send({
+                    text: "Пользователь не найден",
+                    type: "err",
+                });
+                return;
+            }
+
+            fillUserSession(request.session, request.body.login, authorizeResult.id);
+
+            response.send({type: "redirect", url: "/lc"});
+        } catch (ex) {
             response.send({
-                text: "Пользователь не найден",
+                text: `Произошла ошибка при авторизации: ${ex.message}`,
                 type: "err",
             });
-            return;
         }
-
-        fillUserSession(request.session, request.body.login, authorizeResult.id);
-
-        response.send({type: "redirect", url: "/lc"});
     });
 
     app.post("/lcAddPac", urlencodedParser, async function (request, response) {
