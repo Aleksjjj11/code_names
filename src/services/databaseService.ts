@@ -46,15 +46,23 @@ export default class DatabaseService {
     }
 
     public static async authorize(username: string, password: string): Promise<User | undefined> {
+        if (!username) {
+            throw new Error("Username не может быть пустым");
+        }
+
+        if (!password) {
+            throw new Error("Password не может быть пустым");
+        }
+
         const query = "SELECT * FROM users where login = ?";
         const db = await this.openDb();
-        
+
         const user = await db.get<User>(query, username);
 
         if (!user) {
             return undefined; 
         }
-        
+
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (passwordMatch) {
