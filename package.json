@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "tsc-watch --onFirstSuccess \"cp -R ./src/sql/*.sql ./dist/src/sql && cp -R ./src/public/css ./dist/src/public/css\" --onsuccess \"node ./dist/src/server.js\"",
-    "start-windows": "tsc-watch --onFirstSuccess \"xcopy /E /I src\\public\\css dist\\src\\public\\css && xcopy /E /I src\\sql\\*.sql dist\\src\\sql\" --onsuccess \"node ./dist/src/server.js\"",
+    "run": "tsc-watch --onFirstSuccess \"xcopy /E /I src\\public\\css dist\\src\\public\\css && xcopy /E /I src\\sql\\*.sql dist\\src\\sql\" --onsuccess \"node ./dist/src/server.js\"",
     "build-dist": "./node_modules/typescript/bin/tsc"
   },
   "dependencies": {
